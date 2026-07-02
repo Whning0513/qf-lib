@@ -14,6 +14,8 @@
 
 from datetime import datetime
 
+import pandas as pd
+
 from qf_lib.common.enums.axis import Axis
 from qf_lib.common.enums.frequency import Frequency
 from qf_lib.common.utils.returns.get_aggregate_returns import get_aggregate_returns
@@ -58,11 +60,19 @@ def create_return_quantiles(returns: QFSeries, live_start_date: datetime = None,
             oos_weekly = get_aggregate_returns(oos_returns, Frequency.WEEKLY, multi_index=True)
             oos_monthly = get_aggregate_returns(oos_returns, Frequency.MONTHLY, multi_index=True)
 
-            chart = BoxplotChart([in_sample_returns, oos_returns, in_sample_weekly,
-                                  oos_weekly, in_sample_monthly, oos_monthly], linewidth=1)
-
-            x_labels = ["daily IS", "daily OOS", "weekly IS", "weekly OOS", "monthly IS", "monthly OOS"]
-            tick_decorator = AxisTickLabelsDecorator(labels=x_labels, axis=Axis.X, rotation=x_axis_labels_rotation)
+            chart = _get_live_quantile_chart(
+                in_sample_returns,
+                oos_returns,
+                in_sample_weekly,
+                oos_weekly,
+                in_sample_monthly,
+                oos_monthly,
+            )
+            tick_decorator = AxisTickLabelsDecorator(
+                labels=["daily", "weekly", "monthly"],
+                axis=Axis.X,
+                rotation=x_axis_labels_rotation,
+            )
         else:
             chart, tick_decorator = _get_simple_quantile_chart(simple_returns)
 
@@ -89,3 +99,49 @@ def _get_simple_quantile_chart(simple_returns):
 
     tick_decorator = AxisTickLabelsDecorator(labels=["daily", "weekly", "monthly"], axis=Axis.X)
     return chart, tick_decorator
+
+
+def _get_live_quantile_chart(
+        in_sample_returns: QFSeries,
+        oos_returns: QFSeries,
+        in_sample_weekly: QFSeries,
+        oos_weekly: QFSeries,
+        in_sample_monthly: QFSeries,
+        oos_monthly: QFSeries) -> BoxplotChart:
+    chart_data = _create_live_quantile_chart_data(
+        in_sample_returns,
+        oos_returns,
+        in_sample_weekly,
+        oos_weekly,
+        in_sample_monthly,
+        oos_monthly,
+    )
+    return BoxplotChart(chart_data, x="frequency", y="returns", hue="sample", linewidth=1)
+
+
+def _create_live_quantile_chart_data(
+        in_sample_returns: QFSeries,
+        oos_returns: QFSeries,
+        in_sample_weekly: QFSeries,
+        oos_weekly: QFSeries,
+        in_sample_monthly: QFSeries,
+        oos_monthly: QFSeries) -> pd.DataFrame:
+    data_frames = [
+        _returns_frame(in_sample_returns, "daily", "IS"),
+        _returns_frame(oos_returns, "daily", "OOS"),
+        _returns_frame(in_sample_weekly, "weekly", "IS"),
+        _returns_frame(oos_weekly, "weekly", "OOS"),
+        _returns_frame(in_sample_monthly, "monthly", "IS"),
+        _returns_frame(oos_monthly, "monthly", "OOS"),
+    ]
+    return pd.concat(data_frames, ignore_index=True)
+
+
+def _returns_frame(series: QFSeries, frequency_label: str, sample_label: str) -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "returns": pd.Series(series).reset_index(drop=True),
+            "frequency": frequency_label,
+            "sample": sample_label,
+        }
+    )
