@@ -12,7 +12,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import pandas as pd
 import seaborn as sns
@@ -27,8 +27,8 @@ class BoxplotChart(Chart):
 
     Parameters
     ----------
-    data: List[QFSeries]
-       A list of ``QFSeries``.
+    data: Union[List[QFSeries], pd.DataFrame]
+       A list of ``QFSeries`` or a ``DataFrame`` in seaborn wide or long form.
     plot_settings
        Passed to Seaborn plotting function.
     """
@@ -36,7 +36,7 @@ class BoxplotChart(Chart):
     SERIES_KEY = "series"
     """Used for storing the boxplot chart's series."""
 
-    def __init__(self, data: List[QFSeries], **plot_settings):
+    def __init__(self, data: Union[List[QFSeries], pd.DataFrame], **plot_settings):
         super().__init__(start_x=None, end_x=None)
         self._data = data
         self.plot_settings = plot_settings
@@ -48,7 +48,7 @@ class BoxplotChart(Chart):
         plot_data = self._format_data_for_plot()
 
         # Plot the boxes.
-        if "hue" in plot_kwargs:
+        if plot_kwargs.get("hue") is not None and "palette" not in plot_kwargs:
             colors = Chart.get_axes_colors()
             plot_kwargs["palette"] = sns.color_palette(colors, n_colors=len(colors))
 

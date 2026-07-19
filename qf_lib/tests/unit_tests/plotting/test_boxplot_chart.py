@@ -2,12 +2,13 @@ import unittest
 from unittest.mock import patch
 
 import matplotlib
-import matplotlib.pyplot as plt
 import pandas as pd
 
-from qf_lib.plotting.charts.boxplot_chart import BoxplotChart
-
 matplotlib.use("Agg")
+
+import matplotlib.pyplot as plt
+
+from qf_lib.plotting.charts.boxplot_chart import BoxplotChart
 
 
 class TestBoxplotChart(unittest.TestCase):
@@ -25,16 +26,18 @@ class TestBoxplotChart(unittest.TestCase):
 
     @patch("qf_lib.plotting.charts.boxplot_chart.sns.boxplot")
     def test_plot_keeps_palette_when_hue_is_provided(self, boxplot_mock):
+        palette = ["#112233", "#445566"]
         chart = BoxplotChart(
             pd.DataFrame({"value": [1.0, 2.0], "group": ["a", "b"]}),
             linewidth=1,
             hue="group",
+            palette=palette,
         )
 
         chart.plot()
 
         _, kwargs = boxplot_mock.call_args
-        self.assertIn("palette", kwargs)
+        self.assertEqual(palette, kwargs["palette"])
         self.assertEqual("group", kwargs["hue"])
         plt.close(chart.figure)
 

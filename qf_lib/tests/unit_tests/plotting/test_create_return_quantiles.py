@@ -28,6 +28,10 @@ class TestCreateReturnQuantiles(unittest.TestCase):
         self.assertNotIn("x", chart.plot_settings)
         self.assertNotIn("y", chart.plot_settings)
 
+        chart.plot()
+        self.assertIsNotNone(chart.axes)
+        chart.figure.clear()
+
 
 if __name__ == "__main__":
     unittest.main()
