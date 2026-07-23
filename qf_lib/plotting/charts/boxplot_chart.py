@@ -45,21 +45,17 @@ class BoxplotChart(Chart):
         self._setup_axes_if_necessary(figsize)
 
         plot_kwargs = dict(self.plot_settings)
-        plot_data = self._format_data_for_plot()
 
-        # Plot the boxes.
-        if plot_kwargs.get("hue") is not None and "palette" not in plot_kwargs:
+        # Seaborn requires hue when a custom palette is supplied in recent versions.
+        if "palette" in plot_kwargs:
+            palette = plot_kwargs.pop("palette")
+            sns.boxplot(ax=self.axes, data=self._data, palette=palette, **plot_kwargs)
+        elif plot_kwargs.get("hue") is not None:
             colors = Chart.get_axes_colors()
-            plot_kwargs["palette"] = sns.color_palette(colors, n_colors=len(colors))
-
-        sns.boxplot(ax=self.axes, data=plot_data, **plot_kwargs)
+            palette = sns.color_palette(colors, n_colors=len(colors))
+            sns.boxplot(ax=self.axes, data=self._data, palette=palette, **plot_kwargs)
+        else:
+            sns.boxplot(ax=self.axes, data=self._data, **plot_kwargs)
 
         self._adjust_style()
         self._apply_decorators()
-
-    def _format_data_for_plot(self):
-        if not isinstance(self._data, list):
-            return self._data
-
-        series_list = [pd.Series(data).reset_index(drop=True) for data in self._data]
-        return pd.concat(series_list, axis=1) if series_list else pd.DataFrame()

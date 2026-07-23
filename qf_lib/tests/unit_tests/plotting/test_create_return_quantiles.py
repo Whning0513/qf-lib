@@ -19,14 +19,16 @@ class TestCreateReturnQuantiles(unittest.TestCase):
         chart = create_return_quantiles(returns, live_start_date=datetime(2020, 1, 8))
 
         self.assertIsInstance(chart, BoxplotChart)
-        self.assertIsInstance(chart._data, list)
-        self.assertEqual(6, len(chart._data))
+        self.assertIsInstance(chart._data, pd.DataFrame)
+        self.assertEqual({"period", "returns"}, set(chart._data.columns))
         colors = Chart.get_axes_colors()
-        expected_palette = [colors[i % len(colors)] for i in range(6)]
+        expected_palette = {label: colors[i % len(colors)] for i, label in enumerate(
+            ["daily IS", "daily OOS", "weekly IS", "weekly OOS", "monthly IS", "monthly OOS"]
+        )}
         self.assertEqual(expected_palette, chart.plot_settings["palette"])
-        self.assertNotIn("hue", chart.plot_settings)
-        self.assertNotIn("x", chart.plot_settings)
-        self.assertNotIn("y", chart.plot_settings)
+        self.assertEqual("period", chart.plot_settings["x"])
+        self.assertEqual("returns", chart.plot_settings["y"])
+        self.assertEqual("period", chart.plot_settings["hue"])
 
         chart.plot()
         self.assertIsNotNone(chart.axes)
