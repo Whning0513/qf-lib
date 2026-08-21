@@ -7,13 +7,19 @@ matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 
+from qf_lib.containers.dataframe.qf_dataframe import QFDataFrame
+from qf_lib.containers.series.qf_series import QFSeries
 from qf_lib.plotting.charts.boxplot_chart import BoxplotChart
 
 
 class TestBoxplotChart(unittest.TestCase):
     @patch("qf_lib.plotting.charts.boxplot_chart.sns.boxplot")
-    def test_plot_does_not_pass_palette_without_hue(self, boxplot_mock):
-        chart = BoxplotChart([pd.Series([1.0, 2.0]), pd.Series([3.0, 4.0])], linewidth=1)
+    def test_plot_drops_palette_without_hue(self, boxplot_mock):
+        chart = BoxplotChart(
+            [pd.Series([1.0, 2.0]), pd.Series([3.0, 4.0])],
+            linewidth=1,
+            palette=["#112233", "#445566"],
+        )
 
         chart.plot()
 
@@ -22,6 +28,13 @@ class TestBoxplotChart(unittest.TestCase):
         self.assertIsInstance(kwargs["data"], pd.DataFrame)
         self.assertEqual(1, kwargs["linewidth"])
         plt.close(chart.figure)
+
+    def test_format_preserves_qf_series_containers(self):
+        chart = BoxplotChart([QFSeries([1.0, 2.0]), QFSeries([3.0, 4.0])], linewidth=1)
+
+        plot_data = chart._format_data_for_plot()
+
+        self.assertIsInstance(plot_data, QFDataFrame)
 
     @patch("qf_lib.plotting.charts.boxplot_chart.sns.boxplot")
     def test_plot_keeps_palette_when_hue_is_provided(self, boxplot_mock):

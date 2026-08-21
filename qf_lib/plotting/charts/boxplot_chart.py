@@ -17,6 +17,7 @@ from typing import List, Tuple, Union
 import pandas as pd
 import seaborn as sns
 
+from qf_lib.containers.dataframe.qf_dataframe import QFDataFrame
 from qf_lib.containers.series.qf_series import QFSeries
 from qf_lib.plotting.charts.chart import Chart
 
@@ -47,7 +48,11 @@ class BoxplotChart(Chart):
         plot_kwargs = dict(self.plot_settings)
         plot_data = self._format_data_for_plot()
 
-        if plot_kwargs.get("hue") is not None and "palette" not in plot_kwargs:
+        if plot_kwargs.get("hue") is None:
+            # Seaborn rejects a palette without a hue mapping. Do not let a
+            # caller-supplied palette leak into the no-hue code path.
+            plot_kwargs.pop("palette", None)
+        elif "palette" not in plot_kwargs:
             colors = Chart.get_axes_colors()
             plot_kwargs["palette"] = sns.color_palette(colors, n_colors=len(colors))
 
@@ -60,5 +65,5 @@ class BoxplotChart(Chart):
         if not isinstance(self._data, list):
             return self._data
 
-        series_list = [pd.Series(data).reset_index(drop=True) for data in self._data]
-        return pd.concat(series_list, axis=1) if series_list else pd.DataFrame()
+        series_list = [data.reset_index(drop=True) for data in self._data]
+        return pd.concat(series_list, axis=1) if series_list else QFDataFrame()
