@@ -14,8 +14,6 @@
 
 from datetime import datetime
 
-import pandas as pd
-
 from qf_lib.common.enums.axis import Axis
 from qf_lib.common.enums.frequency import Frequency
 from qf_lib.common.utils.returns.get_aggregate_returns import get_aggregate_returns
@@ -61,20 +59,11 @@ def create_return_quantiles(returns: QFSeries, live_start_date: datetime = None,
             oos_weekly = get_aggregate_returns(oos_returns, Frequency.WEEKLY, multi_index=True)
             oos_monthly = get_aggregate_returns(oos_returns, Frequency.MONTHLY, multi_index=True)
             x_labels = ["daily IS", "daily OOS", "weekly IS", "weekly OOS", "monthly IS", "monthly OOS"]
-            data = pd.concat(
-                [in_sample_returns, oos_returns, in_sample_weekly, oos_weekly, in_sample_monthly, oos_monthly],
-                axis=1,
-            )
-            data.columns = x_labels
-            data = data.melt(var_name="period", value_name="returns").dropna()
             colors = Chart.get_axes_colors()
-            palette = {label: colors[i % len(colors)] for i, label in enumerate(x_labels)}
+            palette = [colors[i % len(colors)] for i in range(len(x_labels))]
             chart = BoxplotChart(
-                data,
-                x="period",
-                y="returns",
-                hue="period",
-                legend=False,
+                [in_sample_returns, oos_returns, in_sample_weekly,
+                 oos_weekly, in_sample_monthly, oos_monthly],
                 linewidth=1,
                 palette=palette,
             )

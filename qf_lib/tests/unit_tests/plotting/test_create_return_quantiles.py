@@ -3,6 +3,7 @@ from datetime import datetime
 
 import pandas as pd
 
+from qf_lib.containers.series.qf_series import QFSeries
 from qf_lib.containers.series.simple_returns_series import SimpleReturnsSeries
 from qf_lib.plotting.charts.boxplot_chart import BoxplotChart
 from qf_lib.plotting.charts.chart import Chart
@@ -19,20 +20,20 @@ class TestCreateReturnQuantiles(unittest.TestCase):
         chart = create_return_quantiles(returns, live_start_date=datetime(2020, 1, 8))
 
         self.assertIsInstance(chart, BoxplotChart)
-        self.assertIsInstance(chart._data, pd.DataFrame)
-        self.assertEqual({"period", "returns"}, set(chart._data.columns))
+        self.assertIsInstance(chart._data, list)
+        self.assertEqual(6, len(chart._data))
+        self.assertTrue(all(isinstance(series, QFSeries) for series in chart._data))
         colors = Chart.get_axes_colors()
-        expected_palette = {label: colors[i % len(colors)] for i, label in enumerate(
-            ["daily IS", "daily OOS", "weekly IS", "weekly OOS", "monthly IS", "monthly OOS"]
-        )}
+        expected_palette = [colors[i % len(colors)] for i in range(6)]
         self.assertEqual(expected_palette, chart.plot_settings["palette"])
-        self.assertEqual("period", chart.plot_settings["x"])
-        self.assertEqual("returns", chart.plot_settings["y"])
-        self.assertEqual("period", chart.plot_settings["hue"])
+        self.assertNotIn("hue", chart.plot_settings)
 
-        chart.plot()
+        try:
+            chart.plot()
+        finally:
+            chart.close()
+
         self.assertIsNotNone(chart.axes)
-        chart.figure.clear()
 
 
 if __name__ == "__main__":

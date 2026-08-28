@@ -12,9 +12,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
-import pandas as pd
 import seaborn as sns
 
 from qf_lib.containers.dataframe.qf_dataframe import QFDataFrame
@@ -28,8 +27,8 @@ class BoxplotChart(Chart):
 
     Parameters
     ----------
-    data: Union[List[QFSeries], pd.DataFrame]
-       A list of ``QFSeries`` or a ``DataFrame`` in seaborn wide or long form.
+    data: List[QFSeries]
+       A list of ``QFSeries``.
     plot_settings
        Passed to Seaborn plotting function.
     """
@@ -37,7 +36,7 @@ class BoxplotChart(Chart):
     SERIES_KEY = "series"
     """Used for storing the boxplot chart's series."""
 
-    def __init__(self, data: Union[List[QFSeries], pd.DataFrame], **plot_settings):
+    def __init__(self, data: List[QFSeries], **plot_settings):
         super().__init__(start_x=None, end_x=None)
         self._data = data
         self.plot_settings = plot_settings
@@ -45,25 +44,14 @@ class BoxplotChart(Chart):
     def plot(self, figsize: Tuple[float, float] = None):
         self._setup_axes_if_necessary(figsize)
 
-        plot_kwargs = dict(self.plot_settings)
-        plot_data = self._format_data_for_plot()
-
-        if plot_kwargs.get("hue") is None:
-            # Seaborn rejects a palette without a hue mapping. Do not let a
-            # caller-supplied palette leak into the no-hue code path.
-            plot_kwargs.pop("palette", None)
-        elif "palette" not in plot_kwargs:
-            colors = Chart.get_axes_colors()
-            plot_kwargs["palette"] = sns.color_palette(colors, n_colors=len(colors))
-
-        sns.boxplot(ax=self.axes, data=plot_data, **plot_kwargs)
+        # Seaborn 0.13.2 raises when it receives a list of Series together
+        # with a palette. Keep the public qf-lib input unchanged, but pass a
+        # qf-lib DataFrame to seaborn so each series remains a separate box.
+        plot_data = QFDataFrame({
+            index: series.reset_index(drop=True)
+            for index, series in enumerate(self._data)
+        })
+        sns.boxplot(ax=self.axes, data=plot_data, **self.plot_settings)
 
         self._adjust_style()
         self._apply_decorators()
-
-    def _format_data_for_plot(self):
-        if not isinstance(self._data, list):
-            return self._data
-
-        series_list = [data.reset_index(drop=True) for data in self._data]
-        return pd.concat(series_list, axis=1) if series_list else QFDataFrame()
